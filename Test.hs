@@ -46,10 +46,6 @@ perms :: [a] -> [[a]]
 perms [] = [[]]
 perms (x:xs) = [bs ++ x:cs | perm <- perms xs, (bs, cs) <- splits perm]
 
-transpose :: [[a]] -> [[a]]
-transpose ([]:_) = []
-transpose x = (map head x) : transpose (map tail x)
-
 
 -- binary tree
 data Tree a = Nil | Branch a (Tree a) (Tree a)
