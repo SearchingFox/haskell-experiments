@@ -1,8 +1,8 @@
 module LinAlg where
 
 dot :: Num a => [a] -> [a] -> a
-dota [] [] = 0
-dota (x:xs) (y:ys) = x * y + dot xs ys
+dot [] [] = 0
+dot (x:xs) (y:ys) = x * y + dot xs ys
 
 transpose :: [[a]] -> [[a]]
 transpose ([]:_) = []
