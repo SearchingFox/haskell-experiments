@@ -1,5 +1,10 @@
 import Data.List.Split
 
+--main :: IO ()
+-- main = do
+--     color <- getLine
+--     putStrLn $ "Hello, sky! " ++ (say (conv color))
+
 main :: IO ()
 -- main = interact $ unlines . solve . (map (read :: String -> Int)) . tail . lines
 main = interact $ unlines . (map con) . (splitOn " ")

@@ -1,10 +1,13 @@
 module Test where
+import Data.Bits
 
--- type
+-- custom types
 data Time   = Time Hour Minute Second
 data Hour   = Hour   Int
 data Minute = Minute Int
 data Second = Second Int
+
+data Color = Red | Green | Blue
     
 
 -- functions
@@ -46,6 +49,9 @@ perms :: [a] -> [[a]]
 perms [] = [[]]
 perms (x:xs) = [bs ++ x:cs | perm <- perms xs, (bs, cs) <- splits perm]
 
+-- bor :: (Num a) => a -> a -> Bool
+-- bor a b = or a b
+
 
 -- binary tree
 data Tree a = Nil | Branch a (Tree a) (Tree a)
@@ -70,20 +76,12 @@ inorder Nil = []
 inorder (Branch num left right) = inorder left ++ [num] ++ inorder right
 
 -- custom datatypes
-data Color = Red | Green | Blue
-
 say :: Color -> String
 say Red   = "You are Red!"
 say Blue  = "You are Blue!"
 say Green = "You are Green!"
 
 conv :: String -> Color
-conv "Blue" = Blue
-
-data Maybe a = Nothing | Just a
-
---input
--- main :: IO ()
--- main = do
---     color <- getLine
---     putStrLn $ "Hello, sky! " ++ (say (conv color))
+conv "Blue"  = Blue
+conv "Green" = Blue
+conv "Red"   = Blue
