@@ -1,24 +1,33 @@
---{-# LANGUAGE OverloadedStrings #-}
+-- Download the latest XKCD comics.
+{-# LANGUAGE OverloadedStrings #-}
 module Xkcd where
 
-import Data.Char
-import Network.HTTP
-import Text.Html.DOM
-import Text.XML.Cursor
+import Data.Maybe
+import Data.Text hiding (head, last, tail, takeWhile)
+import Network.HTTP.Req
+import Data.Text.Encoding
+import Control.Exception (throwIO)
+import qualified Data.ByteString.Char8 as BS
 
-url = "http://xkcd.com"
+instance MonadHttp IO where
+    handleHttpException = throwIO
 
-openURL :: String -> IO String
-openURL x = getResponseBody =<< simpleHTTP (getRequest x)
+findImageLink :: [BS.ByteString] -> BS.ByteString
+findImageLink x
+    | BS.isPrefixOf "Image URL" y = last (BS.words y)
+    | otherwise                   = findImageLink (tail x)
+    where y = head x
+findImageLink_1 x = last $ BS.words $ head $ takeWhile (\y -> BS.isPrefixOf "Image URL" y) x
 
-haskellLastModifiedDateTime :: IO ()
-haskellLastModifiedDateTime = do
-    src <- openURL url
-    let lastModifiedDateTime = fromFooter $ parseTags src
-    putStrLn $ lastModifiedDateTime ++ "Hey"
-    --where fromFooter = unwords . drop 6 . words . innerText . take 2 . dropWhile (~/= "<div id=comic>")
-    where fromFooter = unwords . words . innerText . take 3 . dropWhile (~/= "<div id=comic>")
-    
+savePicture :: BS.ByteString -> IO ()
+savePicture picUrl = do
+    pic <- req GET (fst $ fromJust $ parseUrlHttps picUrl) NoReqBody bsResponse mempty
+    BS.writeFile "C:\\Users\\Ant\\Desktop\\last_xkcd.png" $ responseBody pic
 
 main :: IO ()
-main = haskellLastModifiedDateTime
+main = do
+    req GET (https "xkcd.com") NoReqBody bsResponse mempty >>= \bs ->
+        savePicture $ findImageLink_1 $ BS.lines $ responseBody bs
+    BS.putStrLn "Job's done"
+    -- req GET (https "xkcd.com") NoReqBody bsResponse mempty >>= \bs ->
+    --     BS.putStrLn $ findImageLink $ BS.lines $ responseBody bs
