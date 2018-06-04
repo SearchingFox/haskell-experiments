@@ -78,7 +78,7 @@ main = do
   e <- getSystemEncoding
   let enc = e
   str <- getContents
-  putStr str     
+  putStr str
 
 -- bor :: (Num a) => a -> a -> Bool
 -- bor a b = a  b
