@@ -1,3 +1,5 @@
+-- Download images from booru sites (danbooru, yande.re, etc.)
+-- TODO: add https://konachan.com/
 {-# LANGUAGE OverloadedStrings #-}
 module Booru where
 
