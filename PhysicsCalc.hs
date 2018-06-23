@@ -18,6 +18,7 @@ class Conversionable a where
 instance Conversionable Value where
     convertToSI (Value num (Dimension ar dim))
         | dim == "cm" = Value (num / 100.0) metre
+        | dim == "mm" = Value (num / 1000.0) metre
 
 instance Eq Dimension where
     Dimension x _ == Dimension y _ = x == y

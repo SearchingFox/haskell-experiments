@@ -4,12 +4,12 @@
 -- TODO: add saving to specific directory
 -- TODO: maybe add cli
 {-# LANGUAGE OverloadedStrings #-}
-module Booru where
+module Booru (getFilesUrlY, getFilesUrlD) where
 
-import Control.Monad
 import Network.HTTP.Req
 import Text.HTML.TagSoup
 import Data.Maybe                               (fromJust)
+import Control.Monad                            (mapM)
 import Control.Exception                        (throwIO)
 import qualified Data.ByteString.Char8 as BS
 
@@ -24,7 +24,7 @@ splitOnChar splitOnCharc s = case dropWhile (== c) s of
 
 savePicture :: BS.ByteString -> IO ()
 savePicture picUrl = req GET (fst $ fromJust $ parseUrlHttps picUrl) NoReqBody bsResponse mempty >>= \pic ->
-    BS.writeFile ("C:\\Users\\Ant\\Desktop\\" ++ head (tail fileName) ++ "." ++ last fileName) $ responseBody pic
+    BS.writeFile ("C:\\Users\\Ant\\Desktop\\" ++ concat init fileName ++ "." ++ last fileName) $ responseBody pic
         where fileName = splitOnChar '.' $ last $ splitOnChar '/' $ BS.unpack picUrl
 
 -- getProperty :: [Tag BS.ByteString] -> [(BS.ByteString, BS.ByteString)]
