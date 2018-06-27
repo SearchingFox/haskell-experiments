@@ -9,6 +9,7 @@ module Booru (getFilesUrlY, getFilesUrlD) where
 import Network.HTTP.Req
 import Text.HTML.TagSoup
 import System.Environment
+import System.Directory
 import Data.Maybe                               (fromJust)
 import Control.Monad                            (mapM)
 import Control.Exception                        (throwIO)
@@ -25,8 +26,9 @@ splitOnChar c s = case dropWhile (== c) s of
 
 savePicture :: BS.ByteString -> IO ()
 savePicture picUrl = req GET (fst $ fromJust $ parseUrlHttps picUrl) NoReqBody bsResponse mempty >>= \pic ->
-    BS.writeFile ("C:\\Users\\Ant\\Desktop\\" ++ concat (init fileName) ++ "." ++ last fileName) $ responseBody pic
+    BS.writeFile desktopDir $ responseBody pic
         where fileName = splitOnChar '.' $ last $ splitOnChar '/' $ BS.unpack picUrl
+              desktopDir = "C:\\Users\\Ant\\Desktop\\" ++ concat (init fileName) ++ "." ++ last fileName
 
 -- getProperty :: [Tag BS.ByteString] -> [(BS.ByteString, BS.ByteString)]
 --                                              id           property
@@ -60,17 +62,13 @@ urlToXmlUrlD url
 
 main :: IO ()
 main = do
-    (mode:input) <- BS.words <$> BS.getLine
+    mode  <- BS.getLine
+    input <- BS.getLine
     let (url, options) = fromJust $ parseUrlHttps $ if BS.isInfixOf "yande.re" input
         then urlToXmlUrlY input
         else urlToXmlUrlD input
-    r <- req GET url NoReqBody bsResponse options
-    let a = if BS.isInfixOf "yande.re" input
+    req GET url NoReqBody bsResponse options >>= \r -> mapM_ savePicture $ if BS.isInfixOf "yande.re" input
         then getFilesUrlY $ parseTags $ responseBody r
         else getFilesUrlD $ parseTags $ responseBody r
-    case BS.unpack mode of
-        "p" -> print a -- if BS.isInfixOf "yande.re" input
-        --                 then getFilesUrlY $ parseTags $ responseBody r
-        --                 else getFilesUrlD $ parseTags $ responseBody r
-        "s" -> mapM savePicture a
+    
     putStrLn "Done!"
