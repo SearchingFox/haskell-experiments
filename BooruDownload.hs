@@ -18,17 +18,18 @@ import qualified Data.ByteString.Char8 as BS
 instance MonadHttp IO where
     handleHttpException = throwIO
 
-splitOnChar :: Char -> String -> [String]
-splitOnChar c s = case dropWhile (== c) s of
-                "" -> []
-                s' -> w : splitOnChar c s''
-                    where (w, s'') = break (== c) s'
+savePicture :: String -> BS.ByteString -> IO ()
+savePicture dir picUrl =
+    req GET (fst $ fromJust $ parseUrlHttps picUrl) NoReqBody bsResponse mempty >>= \pic ->
+        BS.writeFile filePath $ responseBody pic where
+            fileName = map BS.unpack $ BS.split '.' $ last $ BS.split '/' picUrl
+            filePath = dir ++ "\\" ++  concat (init fileName) ++ "." ++ last fileName
 
-savePicture :: BS.ByteString -> IO ()
-savePicture picUrl = req GET (fst $ fromJust $ parseUrlHttps picUrl) NoReqBody bsResponse mempty >>= \pic ->
-    BS.writeFile desktopDir $ responseBody pic
-        where fileName = splitOnChar '.' $ last $ splitOnChar '/' $ BS.unpack picUrl
-              desktopDir = "C:\\Users\\Ant\\Desktop\\" ++ concat (init fileName) ++ "." ++ last fileName
+savePictures :: String -> [BS.ByteString] -> IO ()
+savePictures dir lst = do
+    homeDir <- getHomeDirectory
+    createDirectoryIfMissing False (homeDir ++ "\\Desktop\\" ++ dir)
+    mapM_ (savePicture (homeDir ++ "\\Desktop\\" ++ dir)) lst
 
 -- getProperty :: [Tag BS.ByteString] -> [(BS.ByteString, BS.ByteString)]
 --                                              id           property
@@ -49,26 +50,26 @@ getFilesUrlD (x:xs) = case x of -- why (TagOpen x _:y:xs) does not work???
 urlToXmlUrlY :: BS.ByteString -> BS.ByteString
 urlToXmlUrlY url
     | BS.isInfixOf ".xml?" url = url
-    | BS.isInfixOf "show" url  = BS.pack "https://yande.re/post.xml?tags=id:" <> BS.pack (splitOnChar '/' (BS.unpack url) !! 4)
-    | BS.isInfixOf "post?" url = BS.pack "https://yande.re/post.xml?" <> BS.pack (last (splitOnChar '?' (BS.unpack url)))
-    | otherwise                = url
+    | BS.isInfixOf "post?" url = BS.pack "https://yande.re/post.xml?"         <> last (BS.split '?' url)
+    | BS.isInfixOf "pool"  url = BS.pack "https://yande.re/pool/show.xml?id=" <> last (BS.split '/' url)
+    | BS.isInfixOf "show"  url = BS.pack "https://yande.re/post.xml?tags=id:" <> BS.split '/' url !! 4
+    | otherwise                = url -- error
 
 urlToXmlUrlD :: BS.ByteString -> BS.ByteString
 urlToXmlUrlD url
     | BS.isInfixOf ".xml" url   = url
     | BS.isInfixOf "posts/" url = BS.init url <> BS.pack ".xml"
-    | BS.isInfixOf "posts?" url = BS.pack "https://danbooru.donmai.us/posts.xml?" <> BS.pack (last (splitOnChar '?' (BS.unpack url)))
+    | BS.isInfixOf "posts?" url = BS.pack "https://danbooru.donmai.us/posts.xml?" <> last (BS.split '?' url)
     | otherwise                 = url
 
 main :: IO ()
 main = do
-    mode  <- BS.getLine
+    dir   <- getLine
     input <- BS.getLine
-    let (url, options) = fromJust $ parseUrlHttps $ if BS.isInfixOf "yande.re" input
-        then urlToXmlUrlY input
-        else urlToXmlUrlD input
-    req GET url NoReqBody bsResponse options >>= \r -> mapM_ savePicture $ if BS.isInfixOf "yande.re" input
-        then getFilesUrlY $ parseTags $ responseBody r
-        else getFilesUrlD $ parseTags $ responseBody r
+    -- BS.putStrLn $ (if BS.isInfixOf "yande.re" input then urlToXmlUrlY else urlToXmlUrlD) input
+    let (url, options) = fromJust $ parseUrlHttps $ (if BS.isInfixOf "yande.re" input
+        then urlToXmlUrlY else urlToXmlUrlD) input
+    req GET url NoReqBody bsResponse options >>= \r -> savePictures dir $ (if BS.isInfixOf "yande.re" input
+        then getFilesUrlY else getFilesUrlD) $ parseTags $ responseBody r
     
     putStrLn "Done!"
