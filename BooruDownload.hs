@@ -41,7 +41,7 @@ getFilesUrlY (x:xs) = case x of
     _                       -> getFilesUrlY xs
 
 getFilesUrlD :: [Tag BS.ByteString] -> [BS.ByteString]
-getFilesUrlD (x:xs) = case x of -- why (TagOpen x _:y:xs) does not work???
+getFilesUrlD (x:xs) = case x of
     TagClose "posts"           -> []
     TagOpen "large-file-url" _ -> fromTagText (head xs) : getFilesUrlD xs
     _                          -> getFilesUrlD xs
@@ -66,7 +66,6 @@ main :: IO ()
 main = do
     dir   <- getLine
     input <- BS.getLine
-    -- BS.putStrLn $ (if BS.isInfixOf "yande.re" input then urlToXmlUrlY else urlToXmlUrlD) input
     let (url, options) = fromJust $ parseUrlHttps $ (if BS.isInfixOf "yande.re" input
         then urlToXmlUrlY else urlToXmlUrlD) input
     req GET url NoReqBody bsResponse options >>= \r -> savePictures dir $ (if BS.isInfixOf "yande.re" input
