@@ -36,14 +36,22 @@ savePictures dir lst = do
 
 getFilesUrlY :: [Tag BS.ByteString] -> [BS.ByteString]
 getFilesUrlY (x:xs) = case x of
+    []                      -> []
     TagClose "posts"        -> []
     TagOpen "post" attrList -> snd (head $ filter (\l -> fst l == "file_url") attrList) : getFilesUrlY xs
     _                       -> getFilesUrlY xs
 
 getFilesUrlD :: [Tag BS.ByteString] -> [BS.ByteString]
 getFilesUrlD (x:xs) = case x of
+    []                         -> []
     TagClose "posts"           -> []
     TagOpen "large-file-url" _ -> fromTagText (head xs) : getFilesUrlD xs
+    _                          -> getFilesUrlD xs
+
+getPoolD :: [Tag BS.ByteString] -> [BS.ByteString]
+getPoolD (x:xs) = case x of
+    []                         -> []
+    TagOpen "post-ids" _       -> BS.words (fromTagText (head xs)) -- : getFilesUrlD xs
     _                          -> getFilesUrlD xs
 
 -- maybe wrap in Maybe
@@ -57,8 +65,9 @@ urlToXmlUrlY url
 
 urlToXmlUrlD :: BS.ByteString -> BS.ByteString
 urlToXmlUrlD url
-    | BS.isInfixOf ".xml" url   = url
+    | BS.isInfixOf ".xml"   url = url
     | BS.isInfixOf "posts/" url = BS.init url <> BS.pack ".xml"
+    | BS.isInfixOf "pools"  url = BS.init url <> BS.pack ".xml"
     | BS.isInfixOf "posts?" url = BS.pack "https://danbooru.donmai.us/posts.xml?" <> last (BS.split '?' url)
     | otherwise                 = url
 
@@ -70,5 +79,6 @@ main = do
         then urlToXmlUrlY else urlToXmlUrlD) input
     req GET url NoReqBody bsResponse options >>= \r -> savePictures dir $ (if BS.isInfixOf "yande.re" input
         then getFilesUrlY else getFilesUrlD) $ parseTags $ responseBody r
+    --req GET url NoReqBody bsResponse options >>= \r -> print $ getPoolD $ parseTags $ responseBody r
     
     putStrLn "Done!"
