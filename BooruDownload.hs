@@ -1,7 +1,6 @@
 -- Download images from booru sites (danbooru.donmai.us, yande.re, etc.)
 -- TODO: add https://konachan.com/
 -- TODO: add working with pages
--- TODO: add saving to specific directory
 -- TODO: maybe add cli
 {-# LANGUAGE OverloadedStrings #-}
 module Booru (getFilesUrlY, getFilesUrlD) where
@@ -36,21 +35,18 @@ savePictures dir lst = do
 
 getFilesUrlY :: [Tag BS.ByteString] -> [BS.ByteString]
 getFilesUrlY (x:xs) = case x of
-    []                      -> []
     TagClose "posts"        -> []
     TagOpen "post" attrList -> snd (head $ filter (\l -> fst l == "file_url") attrList) : getFilesUrlY xs
     _                       -> getFilesUrlY xs
 
 getFilesUrlD :: [Tag BS.ByteString] -> [BS.ByteString]
 getFilesUrlD (x:xs) = case x of
-    []                         -> []
     TagClose "posts"           -> []
     TagOpen "large-file-url" _ -> fromTagText (head xs) : getFilesUrlD xs
     _                          -> getFilesUrlD xs
 
 getPoolD :: [Tag BS.ByteString] -> [BS.ByteString]
 getPoolD (x:xs) = case x of
-    []                         -> []
     TagOpen "post-ids" _       -> BS.words (fromTagText (head xs)) -- : getFilesUrlD xs
     _                          -> getFilesUrlD xs
 
