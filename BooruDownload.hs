@@ -9,6 +9,7 @@ import Network.HTTP.Req
 import Text.HTML.TagSoup
 import System.Environment
 import System.Directory
+import Control.Parallel
 import Data.Maybe                               (fromJust)
 import Control.Monad                            (mapM)
 import Control.Exception                        (throwIO)
@@ -22,7 +23,7 @@ savePicture dir picUrl =
     req GET (fst $ fromJust $ parseUrlHttps picUrl) NoReqBody bsResponse mempty >>= \pic ->
         BS.writeFile filePath $ responseBody pic where
             fileName = map BS.unpack $ BS.split '.' $ last $ BS.split '/' picUrl
-            filePath = dir ++ "\\" ++  concat (init fileName) ++ "." ++ last fileName
+            filePath = dir ++ "\\" ++ concat (init fileName) ++ "." ++ last fileName
 
 savePictures :: String -> [BS.ByteString] -> IO ()
 savePictures dir lst = do
@@ -67,13 +68,17 @@ urlToXmlUrlD url
     | BS.isInfixOf "posts?" url = BS.pack "https://danbooru.donmai.us/posts.xml?" <> last (BS.split '?' url)
     | otherwise                 = url
 
+-- getSite :: BS.String -> (a -> b)
+-- getString x = case x of
+
 main :: IO ()
 main = do
-    dir   <- getLine
+    --dir   <- getLine
     input <- BS.getLine
+    let dirr = BS.unpack $ BS.init $ last $ BS.split '/' input
     let (url, options) = fromJust $ parseUrlHttps $ (if BS.isInfixOf "yande.re" input
         then urlToXmlUrlY else urlToXmlUrlD) input
-    req GET url NoReqBody bsResponse options >>= \r -> savePictures dir $ (if BS.isInfixOf "yande.re" input
+    req GET url NoReqBody bsResponse options >>= \r -> savePictures dirr $ (if BS.isInfixOf "yande.re" input
         then getFilesUrlY else getFilesUrlD) $ parseTags $ responseBody r
     --req GET url NoReqBody bsResponse options >>= \r -> print $ getPoolD $ parseTags $ responseBody r
     
