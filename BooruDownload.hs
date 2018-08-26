@@ -1,5 +1,5 @@
 -- Download images from booru sites (danbooru.donmai.us, yande.re, etc.)
--- TODO: add https://konachan.com/
+-- TODO: add konachan, zerochan (?), derpibooru
 -- TODO: add working with pages
 -- TODO: maybe add cli
 {-# LANGUAGE OverloadedStrings #-}
@@ -12,7 +12,6 @@ import System.Directory
 import Data.Maybe                               (fromJust)
 import Control.Monad                            (mapM)
 import Control.Exception                        (throwIO)
-import qualified Data.Text as T                 (replace, pack, unpack)
 import qualified Data.ByteString.Char8 as BS
 
 instance MonadHttp IO where
@@ -20,8 +19,13 @@ instance MonadHttp IO where
 
 savePicture :: String -> BS.ByteString -> IO ()
 savePicture dir picUrl = do
-    let filePath = dir ++ "\\" ++ T.unpack (T.replace "%20" "_" $ T.pack fileName) where
+    let filePath = dir ++ "\\" ++ replace "%20" "_" fileName where
             fileName = BS.unpack $ last $ BS.split '/' picUrl
+            replace :: String -> String -> String -> String
+            replace old new s@(x:xs)
+                | take (length old) s == old = new ++ replace old new (drop (length old) s)
+                | otherwise = x : replace old new xs
+            replace _ _ "" = []
     req GET (fst $ fromJust $ parseUrlHttps picUrl) NoReqBody bsResponse mempty >>= \pic ->
         BS.writeFile filePath $ responseBody pic
     
