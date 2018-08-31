@@ -3,6 +3,7 @@
 module Xkcd where
 
 import Network.HTTP.Req
+import System.Directory
 import Data.Maybe                               (fromJust)
 import Control.Exception                        (throwIO)
 import qualified Data.ByteString.Char8 as BS
@@ -14,8 +15,11 @@ findImageLink :: [BS.ByteString] -> BS.ByteString
 findImageLink pageHtml = last $ BS.words $ head $ filter (BS.isPrefixOf "Image URL") pageHtml
 
 savePicture :: BS.ByteString -> IO ()
-savePicture picUrl = req GET (fst $ fromJust $ parseUrlHttps picUrl) NoReqBody bsResponse mempty >>= \pic ->
-    BS.writeFile "C:\\Users\\Ant\\Desktop\\last_xkcd.png" $ responseBody pic
+savePicture picUrl = do
+    homeDir <- getHomeDirectory
+    req GET (fst $ fromJust $ parseUrlHttps picUrl) NoReqBody bsResponse mempty >>= \pic ->
+        BS.writeFile (homeDir ++ "\\Desktop\\last_xkcd.png") $ responseBody pic
+            
 
 main :: IO ()
 main = do
