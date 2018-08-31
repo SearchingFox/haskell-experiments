@@ -1,9 +1,9 @@
 -- Download images from booru sites (danbooru.donmai.us, yande.re, etc.)
--- TODO: add konachan, zerochan (?), derpibooru
+-- TODO: add konachan, zerochan (?), derpibooru, gelbooru
 -- TODO: add working with pages
 -- TODO: maybe add cli
 {-# LANGUAGE OverloadedStrings #-}
-module BooruDownload (main, getFilesUrlY, getFilesUrlD) where
+module BooruDownload (main) where
 
 import Network.HTTP.Req
 import Text.HTML.TagSoup
@@ -72,16 +72,29 @@ urlToXmlUrlD url
     | BS.isInfixOf "posts?" url = BS.pack "https://danbooru.donmai.us/posts.xml?" <> last (BS.split '?' url)
     | otherwise                 = url
 
-main :: IO ()
-main = do
-    putStrLn "Enter URL:"
-    input <- BS.getLine
-
-    let dirr = BS.unpack $ BS.init $ last $ BS.split '/' input
+-- TODO: add Nothing handling
+downloadLink :: BS.ByteString -> IO ()
+downloadLink input = do
+    let dirr = BS.unpack $ last $ BS.split '/' input
     let (url, options) = fromJust $ parseUrlHttps $ (if BS.isInfixOf "yande.re" input
         then urlToXmlUrlY else urlToXmlUrlD) input
-    
+
+    putStrLn $ "Downloading " ++ BS.unpack input
+
     req GET url NoReqBody bsResponse options >>= \rsp -> savePictures dirr $ (if BS.isInfixOf "yande.re" input
         then getFilesUrlY else getFilesUrlD) $ parseTags $ responseBody rsp
-    
+
+downloadFromFile :: String -> IO ()
+downloadFromFile file = readFile file >>= \strings ->
+    mapM_ (downloadLink . BS.pack) $ lines strings
+
+main :: IO ()
+main = do
+    getArgs >>= \args -> case args of
+        ["-f", file] -> downloadFromFile file
+        [_] -> mapM_ (downloadLink . BS.pack) args
+        [] -> do
+            putStrLn "Enter URL:"
+            getLine >>= downloadLink . BS.pack
+
     putStrLn "Done!"
