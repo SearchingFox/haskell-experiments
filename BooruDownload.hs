@@ -50,11 +50,6 @@ getFilesUrlD (x:xs) = case x of
     TagOpen "large-file-url" _ -> fromTagText (head xs) : getFilesUrlD xs
     _                          -> getFilesUrlD xs
 
-getPoolD :: [Tag BS.ByteString] -> [BS.ByteString]
-getPoolD (x:xs) = case x of
-    TagOpen "post-ids" _       -> BS.words (fromTagText (head xs)) -- : getFilesUrlD xs
-    _                          -> getFilesUrlD xs
-
 -- maybe wrap in Maybe
 urlToXmlUrlY :: BS.ByteString -> BS.ByteString
 urlToXmlUrlY url
