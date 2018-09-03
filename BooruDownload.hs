@@ -9,6 +9,7 @@ import Network.HTTP.Req
 import Text.HTML.TagSoup
 import System.Environment
 import System.Directory
+import Data.Char
 import Data.Maybe                               (fromJust)
 import Control.Monad                            (mapM)
 import Control.Exception                        (throwIO)
@@ -19,24 +20,28 @@ instance MonadHttp IO where
 
 savePicture :: String -> BS.ByteString -> IO ()
 savePicture dir picUrl = do
-    let filePath = dir ++ "\\" ++ replace "%20" "_" fileName where
-            fileName = BS.unpack $ last $ BS.split '/' picUrl
-            replace :: String -> String -> String -> String
-            replace old new s@(x:xs)
-                | take (length old) s == old = new ++ replace old new (drop (length old) s)
-                | otherwise = x : replace old new xs
-            replace _ _ "" = []
+    let filePath = dir ++ "\\" ++ fileName where
+            fileName = filter (not . (`elem` ("/\\:*?\"<>|" :: String))) $ unescapeString $ BS.unpack $ last $ BS.split '/' picUrl
+            unescapeString :: String -> String
+            unescapeString s@(x:y:z:xs)
+                | x == '%'  = chr (read ("0x" ++ [y] ++ [z]) :: Int) : unescapeString xs
+                | otherwise = x : unescapeString (tail s)
+            unescapeString s = s
+    
     req GET (fst $ fromJust $ parseUrlHttps picUrl) NoReqBody bsResponse mempty >>= \pic ->
         BS.writeFile filePath $ responseBody pic
-    
     putStrLn $ "Downloaded " ++ filePath
 
 savePictures :: String -> [BS.ByteString] -> IO ()
 savePictures dir lst = do
     homeDir <- getHomeDirectory
     createDirectoryIfMissing False (homeDir ++ "\\Desktop\\" ++ dir)
-    mapM_ (savePicture (homeDir ++ "\\Desktop\\" ++ dir)) lst
+    mapM_ (savePicture $ homeDir ++ "\\Desktop\\" ++ dir) lst
 
+getPoolD :: [Tag BS.ByteString] -> [BS.ByteString]
+getPoolD (x:xs) = case x of
+    TagOpen "post-ids" _       -> map ("https://danbooru.donmai.us/posts/" <>) $ BS.words (fromTagText $ head xs)
+    _                          -> getPoolD xs
 
 getFilesUrlY :: [Tag BS.ByteString] -> [BS.ByteString]
 getFilesUrlY (x:xs) = case x of
@@ -53,30 +58,35 @@ getFilesUrlD (x:xs) = case x of
 -- maybe wrap in Maybe
 urlToXmlUrlY :: BS.ByteString -> BS.ByteString
 urlToXmlUrlY url
-    | BS.isInfixOf ".xml?" url = url
+    | BS.isInfixOf ".xml"  url = url
+    | BS.isInfixOf "pool"  url = url <> BS.pack ".xml"
     | BS.isInfixOf "post?" url = BS.pack "https://yande.re/post.xml?"         <> last (BS.split '?' url)
-    | BS.isInfixOf "pool"  url = BS.pack "https://yande.re/pool/show.xml?id=" <> last (BS.split '/' url)
     | BS.isInfixOf "show"  url = BS.pack "https://yande.re/post.xml?tags=id:" <> BS.split '/' url !! 4
-    | otherwise                = url -- error
+    | otherwise                = error "Unsupported Yandere link"
 
 urlToXmlUrlD :: BS.ByteString -> BS.ByteString
 urlToXmlUrlD url
     | BS.isInfixOf ".xml"   url = url
-    | BS.isInfixOf "posts/" url = BS.init url <> BS.pack ".xml"
-    | BS.isInfixOf "pools"  url = BS.init url <> BS.pack ".xml"
+    | BS.isInfixOf "pools"  url = url <> BS.pack ".xml"
+    | BS.isInfixOf "posts/" url = url <> BS.pack ".xml"
     | BS.isInfixOf "posts?" url = BS.pack "https://danbooru.donmai.us/posts.xml?" <> last (BS.split '?' url)
-    | otherwise                 = url
+    | otherwise                 = error "Unsupported Danbooru link"
+
+urlToXmlUrl :: BS.ByteString -> BS.ByteString
+urlToXmlUrl url
+    | BS.isInfixOf "yande.re"           url = urlToXmlUrlY url
+    | BS.isInfixOf "danbooru.donmai.us" url = urlToXmlUrlD url
+    | BS.isInfixOf "konachan.com"       url = undefined
 
 -- TODO: add Nothing handling
 downloadLink :: BS.ByteString -> IO ()
-downloadLink input = do
-    let dirr = BS.unpack $ last $ BS.split '/' input
-    let (url, options) = fromJust $ parseUrlHttps $ (if BS.isInfixOf "yande.re" input
-        then urlToXmlUrlY else urlToXmlUrlD) input
+downloadLink link = do
+    let dirr = filter (not . (`elem` ("/\\:*?\"<>|" :: String))) $ BS.unpack $ last $ BS.split '/' link
+    let (url, options) = fromJust $ parseUrlHttps $ urlToXmlUrl link
 
-    putStrLn $ "Downloading " ++ BS.unpack input
+    putStrLn $ "Downloading " ++ BS.unpack link
 
-    req GET url NoReqBody bsResponse options >>= \rsp -> savePictures dirr $ (if BS.isInfixOf "yande.re" input
+    req GET url NoReqBody bsResponse options >>= \rsp -> savePictures dirr $ (if BS.isInfixOf "yande.re" link
         then getFilesUrlY else getFilesUrlD) $ parseTags $ responseBody rsp
 
 downloadFromFile :: String -> IO ()
@@ -87,9 +97,9 @@ main :: IO ()
 main = do
     getArgs >>= \args -> case args of
         ["-f", file] -> downloadFromFile file
-        [_] -> mapM_ (downloadLink . BS.pack) args
-        [] -> do
-            putStrLn "Enter URL:"
-            getLine >>= downloadLink . BS.pack
+        [_]          -> mapM_ (downloadLink . BS.pack) args
+        []           -> do
+                        putStrLn "Enter URL:"
+                        getLine >>= downloadLink . BS.pack
 
     putStrLn "Done!"
