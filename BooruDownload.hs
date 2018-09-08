@@ -1,7 +1,6 @@
 -- Download images from booru sites (danbooru.donmai.us, yande.re, etc.)
 -- TODO: add konachan, zerochan (?), derpibooru, gelbooru
 -- TODO: add working with pages
--- TODO: maybe add cli
 {-# LANGUAGE OverloadedStrings #-}
 module BooruDownload (main) where
 
@@ -9,6 +8,7 @@ import Network.HTTP.Req
 import Text.HTML.TagSoup
 import System.Environment
 import System.Directory
+import Data.Time.Clock.POSIX
 import Data.Char
 import Data.Maybe                               (fromJust)
 import Control.Monad                            (mapM)
@@ -55,7 +55,14 @@ getFilesUrlD (x:xs) = case x of
     TagOpen "large-file-url" _ -> fromTagText (head xs) : getFilesUrlD xs
     _                          -> getFilesUrlD xs
 
--- maybe wrap in Maybe
+-- ? use yandere?
+getFilesUrlG :: [Tag BS.ByteString] -> [BS.ByteString]
+getFilesUrlG (x:xs) = case x of
+    TagClose "posts"        -> []
+    TagOpen "post" attrList -> snd (head $ filter (\l -> fst l == "file_url") attrList) : getFilesUrlG xs
+    _                       -> getFilesUrlG xs
+
+-- ? maybe wrap in Maybe
 urlToXmlUrlY :: BS.ByteString -> BS.ByteString
 urlToXmlUrlY url
     | BS.isInfixOf ".xml"  url = url
@@ -76,25 +83,35 @@ urlToXmlUrl :: BS.ByteString -> BS.ByteString
 urlToXmlUrl url
     | BS.isInfixOf "yande.re"           url = urlToXmlUrlY url
     | BS.isInfixOf "danbooru.donmai.us" url = urlToXmlUrlD url
+    | BS.isInfixOf "gelbooru.com"       url = BS.pack "https://gelbooru.com/index.php?page=dapi&s=post&q=index&id=" <> last (BS.split '/' url)
     | BS.isInfixOf "konachan.com"       url = undefined
+    | otherwise                             = error "Unsupported url"
 
--- TODO: add Nothing handling
+chooseParser url
+    | BS.isInfixOf "yande.re"  url = getFilesUrlY
+    | BS.isInfixOf "donmai.us" url = getFilesUrlD
+
+-- ? remove Nothing handling?
 downloadLink :: BS.ByteString -> IO ()
 downloadLink link = do
-    let dirr = filter (not . (`elem` ("/\\:*?\"<>|" :: String))) $ BS.unpack $ last $ BS.split '/' link
-    let (url, options) = fromJust $ parseUrlHttps $ urlToXmlUrl link
+    -- dirr <- 
+    let dir = getPOSIXTime >>= \d -> show $ round d
+    putChar dir
+    -- let dirr = filter (not . (`elem` ("/\\:*?\"<>|" :: String))) $ BS.unpack $ last $ BS.split '/' link
+    -- case parseUrlHttps $ urlToXmlUrl link of
+    --     Just (url, options) -> do
+    --         putStrLn $ "Downloading " ++ BS.unpack link
 
-    putStrLn $ "Downloading " ++ BS.unpack link
-
-    req GET url NoReqBody bsResponse options >>= \rsp -> savePictures dirr $ (if BS.isInfixOf "yande.re" link
-        then getFilesUrlY else getFilesUrlD) $ parseTags $ responseBody rsp
+    --         req GET url NoReqBody bsResponse options >>= \rsp ->
+    --             savePictures dir $ chooseParser link $ parseTags $ responseBody rsp
+    --     Nothing             -> putStrLn $ "Bad url: " ++ BS.unpack link
 
 downloadFromFile :: String -> IO ()
-downloadFromFile file = readFile file >>= \strings ->
-    mapM_ (downloadLink . BS.pack) $ lines strings
+downloadFromFile file = readFile file >>= \strings -> mapM_ (downloadLink . BS.pack) $ lines strings
 
 main :: IO ()
 main = do
+    -- TODO: add multiple arguments support
     getArgs >>= \args -> case args of
         ["-f", file] -> downloadFromFile file
         [_]          -> mapM_ (downloadLink . BS.pack) args
