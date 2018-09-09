@@ -87,6 +87,7 @@ urlToXmlUrl url
     | BS.isInfixOf "konachan.com"       url = undefined
     | otherwise                             = error "Unsupported url"
 
+chooseParser :: BS.ByteString -> IO ()
 chooseParser url
     | BS.isInfixOf "yande.re"  url = getFilesUrlY
     | BS.isInfixOf "donmai.us" url = getFilesUrlD
@@ -94,20 +95,18 @@ chooseParser url
 -- ? remove Nothing handling?
 downloadLink :: BS.ByteString -> IO ()
 downloadLink link = do
-    -- dirr <- 
-    let dir = getPOSIXTime >>= \d -> show $ round d
-    putChar dir
+    dir <- getPOSIXTime
     -- let dirr = filter (not . (`elem` ("/\\:*?\"<>|" :: String))) $ BS.unpack $ last $ BS.split '/' link
-    -- case parseUrlHttps $ urlToXmlUrl link of
-    --     Just (url, options) -> do
-    --         putStrLn $ "Downloading " ++ BS.unpack link
+    case parseUrlHttps $ urlToXmlUrl link of
+        Just (url, options) -> do
+            putStrLn $ "Downloading " ++ BS.unpack link
 
-    --         req GET url NoReqBody bsResponse options >>= \rsp ->
-    --             savePictures dir $ chooseParser link $ parseTags $ responseBody rsp
-    --     Nothing             -> putStrLn $ "Bad url: " ++ BS.unpack link
+            req GET url NoReqBody bsResponse options >>= \rsp ->
+                savePictures (show $ round dir) $ chooseParser link $ parseTags $ responseBody rsp
+        Nothing             -> putStrLn $ "Bad url: " ++ BS.unpack link
 
 downloadFromFile :: String -> IO ()
-downloadFromFile file = readFile file >>= \strings -> mapM_ (downloadLink . BS.pack) $ lines strings
+downloadFromFile file = readFile file >>= \s -> mapM_ (downloadLink . BS.pack) $ lines s
 
 main :: IO ()
 main = do
