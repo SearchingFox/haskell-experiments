@@ -52,7 +52,7 @@ getFilesUrlY (x:xs) = case x of
 getFilesUrlD :: [Tag BS.ByteString] -> [BS.ByteString]
 getFilesUrlD (x:xs) = case x of
     TagClose "posts"           -> []
-    TagOpen "large-file-url" _ -> fromTagText (head xs) : getFilesUrlD xs
+    TagOpen "file-url" _ -> fromTagText (head xs) : getFilesUrlD xs
     _                          -> getFilesUrlD xs
 
 -- ? use yandere?
@@ -76,7 +76,7 @@ urlToXmlUrlD url
     | BS.isInfixOf ".xml"   url = url
     | BS.isInfixOf "pools"  url = url <> BS.pack ".xml"
     | BS.isInfixOf "posts/" url = url <> BS.pack ".xml"
-    | BS.isInfixOf "posts?" url = BS.pack "https://danbooru.donmai.us/posts.xml?" <> last (BS.split '?' url)
+    | BS.isInfixOf "posts?" url = BS.intercalate ".xml?" $ BS.split '?' url
     | otherwise                 = error "Unsupported Danbooru link"
 
 urlToXmlUrl :: BS.ByteString -> BS.ByteString
@@ -87,7 +87,7 @@ urlToXmlUrl url
     | BS.isInfixOf "konachan.com"       url = undefined
     | otherwise                             = error "Unsupported url"
 
-chooseParser :: BS.ByteString -> IO ()
+chooseParser :: BS.ByteString -> ([Tag BS.ByteString] -> [BS.ByteString])
 chooseParser url
     | BS.isInfixOf "yande.re"  url = getFilesUrlY
     | BS.isInfixOf "donmai.us" url = getFilesUrlD
