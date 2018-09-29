@@ -10,7 +10,7 @@ import System.Directory
 import qualified Data.ByteString.Lazy.Char8 as BL
 
 data WebPage = WebPage { url   :: String
-                       , title :: String } deriving Show
+                       , title :: Maybe String } deriving Show
 deriveJSON defaultOptions ''WebPage
 
 newtype All = All { windows :: Map String (Map String WebPage) } deriving Show
@@ -20,5 +20,11 @@ main :: IO ()
 main = do
     setLocaleEncoding utf8 -- or "chcp.com 65001" in console
     homeDir <- getHomeDirectory
-    file <- BL.readFile $ homeDir ++ "\\Desktop\\Sessions - 29-08-2018 20-13-36.json"
-    writeFile (homeDir ++ "\\Desktop\\Sessions.txt") $ unlines $ map (\l -> url l ++ " " ++ title l) $ concatMap (map snd . toList . snd) $ concatMap (toList . windows) $ fromJust (decode file :: Maybe [All])
+    file    <- BL.readFile $ homeDir ++ "\\Desktop\\Сессии - 2018-09-26 22-52-00.json"
+
+    writeFile (homeDir ++ "\\Desktop\\FirefoxSavedTabsExport.txt") $ unlines $
+        map (\l -> case title l of
+                Nothing -> url l ++ "\n" ++ "None"
+                _ -> url l ++ "\n" ++ fromJust (title l) ) $
+                    concatMap (map snd . toList . snd) $
+                    concatMap (toList . windows) $ fromJust (decode file :: Maybe [All])
