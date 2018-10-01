@@ -1,6 +1,6 @@
 -- Download images from booru sites (danbooru.donmai.us, yande.re, etc.)
 -- TODO: add konachan, zerochan (?), derpibooru, gelbooru
--- TODO: add working with pages
+-- TODO!: add working with pages
 {-# LANGUAGE OverloadedStrings #-}
 module BooruDownload (main) where
 
@@ -34,9 +34,8 @@ savePicture dir picUrl = do
 
 savePictures :: String -> [BS.ByteString] -> IO ()
 savePictures dir lst = do
-    homeDir <- getHomeDirectory
-    createDirectoryIfMissing False (homeDir ++ "\\Desktop\\" ++ dir)
-    mapM_ (savePicture $ homeDir ++ "\\Desktop\\" ++ dir) lst
+    createDirectoryIfMissing False ("D:\\" ++ dir)
+    mapM_ (savePicture $ "D:\\" ++ dir) lst
 
 getPoolD :: [Tag BS.ByteString] -> [BS.ByteString]
 getPoolD (x:xs) = case x of
@@ -68,7 +67,7 @@ urlToXmlUrlY url
     | BS.isInfixOf ".xml"  url = url
     | BS.isInfixOf "pool"  url = url <> BS.pack ".xml"
     | BS.isInfixOf "post?" url = BS.pack "https://yande.re/post.xml?"         <> last (BS.split '?' url)
-    | BS.isInfixOf "show"  url = BS.pack "https://yande.re/post.xml?tags=id:" <> BS.split '/' url !! 4
+    | BS.isInfixOf "show"  url = BS.pack "https://yande.re/post.xml?tags=id:" <> BS.split '/' url !! 5
     | otherwise                = error "Unsupported Yandere link"
 
 urlToXmlUrlD :: BS.ByteString -> BS.ByteString
@@ -95,23 +94,27 @@ chooseParser url
 -- ? remove Nothing handling?
 downloadLink :: BS.ByteString -> IO ()
 downloadLink link = do
-    dir <- getPOSIXTime
-    -- let dirr = filter (not . (`elem` ("/\\:*?\"<>|" :: String))) $ BS.unpack $ last $ BS.split '/' link
-    case parseUrlHttps $ urlToXmlUrl link of
+    let stripedLink = if BS.last link == '/' then BS.init link else link
+    -- case dirr of
+    --     "time" -> do
+    --         t <- getPOSIXTime
+    --         let dirName = show $ round t
+    let dir = filter (not . (`elem` ("/\\:*?\"<>|" :: String))) $ BS.unpack $ last $ BS.split '/' stripedLink
+    case parseUrlHttps $ urlToXmlUrl stripedLink of
         Just (url, options) -> do
-            putStrLn $ "Downloading " ++ BS.unpack link
-
+            putStrLn $ "Downloading " ++ BS.unpack stripedLink
             req GET url NoReqBody bsResponse options >>= \rsp ->
-                savePictures (show $ round dir) $ chooseParser link $ parseTags $ responseBody rsp
-        Nothing             -> putStrLn $ "Bad url: " ++ BS.unpack link
+                savePictures dir $ chooseParser stripedLink $ parseTags $ responseBody rsp
+        Nothing             -> putStrLn $ "Bad url: " ++ BS.unpack stripedLink
 
 downloadFromFile :: String -> IO ()
 downloadFromFile file = readFile file >>= \s -> mapM_ (downloadLink . BS.pack) $ lines s
 
 main :: IO ()
 main = do
-    -- TODO: add multiple arguments support
-    getArgs >>= \args -> case args of
+    args <- getArgs
+    let dir = if head args == "-d" then Just (args !! 1) else Nothing
+    case args of
         ["-f", file] -> downloadFromFile file
         [_]          -> mapM_ (downloadLink . BS.pack) args
         []           -> do
