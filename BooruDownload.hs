@@ -99,12 +99,12 @@ downloadLink link = do
     --     "time" -> do
     --         t <- getPOSIXTime
     --         let dirName = show $ round t
-    let dir = filter (not . (`elem` ("/\\:*?\"<>|" :: String))) $ BS.unpack $ last $ BS.split '/' stripedLink
+    let dirName = filter (not . (`elem` ("/\\:*?\"<>|" :: String))) $ BS.unpack $ last $ BS.split '/' stripedLink
     case parseUrlHttps $ urlToXmlUrl stripedLink of
         Just (url, options) -> do
             putStrLn $ "Downloading " ++ BS.unpack stripedLink
             req GET url NoReqBody bsResponse options >>= \rsp ->
-                savePictures dir $ chooseParser stripedLink $ parseTags $ responseBody rsp
+                savePictures dirName $ chooseParser stripedLink $ parseTags $ responseBody rsp
         Nothing             -> putStrLn $ "Bad url: " ++ BS.unpack stripedLink
 
 downloadFromFile :: String -> IO ()
