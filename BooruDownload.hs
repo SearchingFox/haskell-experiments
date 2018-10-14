@@ -11,8 +11,8 @@ import System.Directory
 import Data.Time.Clock.POSIX
 import Data.Char
 import Data.Maybe                               (fromJust)
-import Control.Monad                            (mapM)
 import Control.Exception                        (throwIO)
+import Control.Monad                            (mapM)
 import qualified Data.ByteString.Char8 as BS
 
 instance MonadHttp IO where
@@ -23,9 +23,9 @@ savePicture dir picUrl = do
     let filePath = dir ++ "\\" ++ fileName where
             fileName = filter (not . (`elem` ("/\\:*?\"<>|" :: String))) $ unescapeString $ BS.unpack $ last $ BS.split '/' picUrl
             unescapeString :: String -> String
-            unescapeString s@(x:y:z:xs)
+            unescapeString (x:s@(y:z:xs))
                 | x == '%'  = chr (read ("0x" ++ [y] ++ [z]) :: Int) : unescapeString xs
-                | otherwise = x : unescapeString (tail s)
+                | otherwise = x : unescapeString s
             unescapeString s = s
     
     req GET (fst $ fromJust $ parseUrlHttps picUrl) NoReqBody bsResponse mempty >>= \pic ->
