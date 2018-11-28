@@ -21,12 +21,11 @@ instance MonadHttp IO where
 savePicture :: String -> BS.ByteString -> IO ()
 savePicture dir picUrl = do
     let filePath = dir ++ "\\" ++ fileName where
-            fileName = filter (not . (`elem` ("/\\:*?\"<>|" :: String))) $ unescapeString $ BS.unpack $ last $ BS.split '/' picUrl
-            unescapeString :: String -> String
-            unescapeString (x:s@(y:z:xs))
-                | x == '%'  = chr (read ("0x" ++ [y] ++ [z]) :: Int) : unescapeString xs
-                | otherwise = x : unescapeString s
-            unescapeString s = s
+            fileName = filter (`notElem` ("/\\:*?\"<>|" :: String)) $ unescapeString $ BS.unpack $ last $ BS.split '/' picUrl where
+                unescapeString (x:s@(y:z:xs))
+                    | x == '%'  = chr (read ("0x" ++ [y] ++ [z]) :: Int) : unescapeString xs
+                    | otherwise = x : unescapeString s
+                unescapeString s = s
     
     req GET (fst $ fromJust $ parseUrlHttps picUrl) NoReqBody bsResponse mempty >>= \pic ->
         BS.writeFile filePath $ responseBody pic
@@ -39,8 +38,8 @@ savePictures dir lst = do
 
 getPoolD :: [Tag BS.ByteString] -> [BS.ByteString]
 getPoolD (x:xs) = case x of
-    TagOpen "post-ids" _       -> map ("https://danbooru.donmai.us/posts/" <>) $ BS.words (fromTagText $ head xs)
-    _                          -> getPoolD xs
+    TagOpen "post-ids" _ -> map ("https://danbooru.donmai.us/posts/" <>) $ BS.words (fromTagText $ head xs)
+    _                    -> getPoolD xs
 
 getFilesUrlY :: [Tag BS.ByteString] -> [BS.ByteString]
 getFilesUrlY (x:xs) = case x of
@@ -50,9 +49,9 @@ getFilesUrlY (x:xs) = case x of
 
 getFilesUrlD :: [Tag BS.ByteString] -> [BS.ByteString]
 getFilesUrlD (x:xs) = case x of
-    TagClose "posts"           -> []
+    TagClose "posts"     -> []
     TagOpen "file-url" _ -> fromTagText (head xs) : getFilesUrlD xs
-    _                          -> getFilesUrlD xs
+    _                    -> getFilesUrlD xs
 
 -- ? use yandere?
 getFilesUrlG :: [Tag BS.ByteString] -> [BS.ByteString]
@@ -84,7 +83,7 @@ urlToXmlUrl url
     | BS.isInfixOf "danbooru.donmai.us" url = urlToXmlUrlD url
     | BS.isInfixOf "gelbooru.com"       url = BS.pack "https://gelbooru.com/index.php?page=dapi&s=post&q=index&id=" <> last (BS.split '/' url)
     | BS.isInfixOf "konachan.com"       url = undefined
-    | otherwise                             = error "Unsupported url"
+    | otherwise                             = url
 
 chooseParser :: BS.ByteString -> ([Tag BS.ByteString] -> [BS.ByteString])
 chooseParser url
@@ -94,18 +93,17 @@ chooseParser url
 -- ? remove Nothing handling?
 downloadLink :: BS.ByteString -> IO ()
 downloadLink link = do
-    let stripedLink = if BS.last link == '/' then BS.init link else link
     -- case dirr of
     --     "time" -> do
     --         t <- getPOSIXTime
     --         let dirName = show $ round t
-    let dirName = filter (not . (`elem` ("/\\:*?\"<>|" :: String))) $ BS.unpack $ last $ BS.split '/' stripedLink
-    case parseUrlHttps $ urlToXmlUrl stripedLink of
+    let dirName = filter (flip notElem ("/\\:*?\"<>|" :: String)) $ BS.unpack $ last $ BS.split '/' (if BS.last link == '/' then BS.init link else link)
+    case parseUrlHttps $ urlToXmlUrl link of
         Just (url, options) -> do
-            putStrLn $ "Downloading " ++ BS.unpack stripedLink
+            putStrLn $ "Downloading " ++ BS.unpack link
             req GET url NoReqBody bsResponse options >>= \rsp ->
-                savePictures dirName $ chooseParser stripedLink $ parseTags $ responseBody rsp
-        Nothing             -> putStrLn $ "Bad url: " ++ BS.unpack stripedLink
+                savePictures dirName $ chooseParser link $ parseTags $ responseBody rsp
+        Nothing             -> putStrLn "Bad url"
 
 downloadFromFile :: String -> IO ()
 downloadFromFile file = readFile file >>= \s -> mapM_ (downloadLink . BS.pack) $ lines s
@@ -113,7 +111,7 @@ downloadFromFile file = readFile file >>= \s -> mapM_ (downloadLink . BS.pack) $
 main :: IO ()
 main = do
     args <- getArgs
-    let dir = if head args == "-d" then Just (args !! 1) else Nothing
+    -- let dir = if head args == "-d" then Just (args !! 1) else Nothing
     case args of
         ["-f", file] -> downloadFromFile file
         [_]          -> mapM_ (downloadLink . BS.pack) args
