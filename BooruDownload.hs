@@ -21,11 +21,11 @@ instance MonadHttp IO where
 savePicture :: String -> BS.ByteString -> IO ()
 savePicture dir picUrl = do
     let filePath = dir ++ "\\" ++ fileName where
-            fileName = filter (`notElem` ("/\\:*?\"<>|" :: String)) $ unescapeString $ BS.unpack $ last $ BS.split '/' picUrl where
-                unescapeString (x:s@(y:z:xs))
-                    | x == '%'  = chr (read ("0x" ++ [y] ++ [z]) :: Int) : unescapeString xs
-                    | otherwise = x : unescapeString s
-                unescapeString s = s
+        fileName = filter (`notElem` ("/\\:*?\"<>|" :: String)) $ unescapeString $ BS.unpack $ last $ BS.split '/' picUrl where
+            unescapeString (x:s@(y:z:xs))
+                | x == '%'  = chr (read ("0x" ++ [y] ++ [z]) :: Int) : unescapeString xs
+                | otherwise = x : unescapeString s
+            unescapeString s = s
     
     req GET (fst $ fromJust $ parseUrlHttps picUrl) NoReqBody bsResponse mempty >>= \pic ->
         BS.writeFile filePath $ responseBody pic
@@ -33,8 +33,8 @@ savePicture dir picUrl = do
 
 savePictures :: String -> [BS.ByteString] -> IO ()
 savePictures dir lst = do
-    createDirectoryIfMissing False ("D:\\" ++ dir)
-    mapM_ (savePicture $ "D:\\" ++ dir) lst
+    createDirectoryIfMissing False ("D:\\Downloadss\\" ++ dir)
+    mapM_ (savePicture $ "D:\\Downloadss\\" ++ dir) lst
 
 getPoolD :: [Tag BS.ByteString] -> [BS.ByteString]
 getPoolD (x:xs) = case x of
@@ -90,7 +90,7 @@ chooseParser url
     | BS.isInfixOf "yande.re"  url = getFilesUrlY
     | BS.isInfixOf "donmai.us" url = getFilesUrlD
 
--- ? remove Nothing handling?
+-- ? remove Nothing handling? Handling empty input
 downloadLink :: BS.ByteString -> IO ()
 downloadLink link = do
     -- case dirr of
