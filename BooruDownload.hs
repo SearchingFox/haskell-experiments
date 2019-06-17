@@ -23,7 +23,7 @@ savePicture dir picUrl = do
     let filePath = dir ++ "\\" ++ fileName where
         fileName = filter (`notElem` ("/\\:*?\"<>|" :: String)) $ unescapeString $ BS.unpack $ last $ BS.split '/' picUrl where
             unescapeString (x:s@(y:z:xs))
-                | x == '%'  = chr (read ("0x" ++ [y] ++ [z]) :: Int) : unescapeString xs
+                | x == '%'  = chr (read ("0x" ++ [y, z])) : unescapeString xs
                 | otherwise = x : unescapeString s
             unescapeString s = s
     
