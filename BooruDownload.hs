@@ -2,7 +2,7 @@
 -- TODO: add konachan, zerochan (?), derpibooru, gelbooru
 -- TODO!: add working with pages
 {-# LANGUAGE OverloadedStrings #-}
-module BooruDownload (main) where
+module BooruDownload where
 
 import Network.HTTP.Req
 import Text.HTML.TagSoup
