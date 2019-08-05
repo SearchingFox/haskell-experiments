@@ -19,10 +19,10 @@ train :: [String] -> [Tags]
 train (x:xs)
     | xs == [] = []
     | otherwise = makeTag (take num xs) ++ train (drop num xs)
-    where
-        t = words $ head lns
-        cl = head t
-        num = read (tail t) :: Int
+        where
+            t = words $ head lns
+            cl = head t
+            num = read (tail t) :: Int
 
 main :: IO ()
 main = readFile "C:\\Users\\Asus\\Desktop\\dataset.txt" >>= \t -> putStrLn $ head $ lines t
