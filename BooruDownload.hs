@@ -18,6 +18,7 @@ import qualified Data.ByteString.Char8 as BS
 instance MonadHttp IO where
     handleHttpException = throwIO
 
+-- TODO: Move IO action to main?
 savePicture :: String -> BS.ByteString -> IO ()
 savePicture dir picUrl = do
     let filePath = dir ++ "\\" ++ fileName where

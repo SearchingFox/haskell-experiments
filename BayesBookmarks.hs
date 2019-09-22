@@ -39,5 +39,5 @@ train (x:xs) = (cl, makeTag (take num xs)) : train (drop num xs)
         num = read (last t) :: Int
 
 main :: IO ()
-main = readFile "C:\\Users\\Asus\\Desktop\\dataset1.txt" >>= \t -> print $ train $ lines t
+main = readFile "C:\\Users\\Asus\\Documents\\GitHub\\haskell-experiments\\dataset1.txt" >>= \t -> print $ train $ lines t
     
