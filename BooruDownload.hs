@@ -18,7 +18,7 @@ import qualified Data.ByteString.Char8 as BS
 instance MonadHttp IO where
     handleHttpException = throwIO
 
--- TODO: Move IO action to main?
+-- TODO?: Move IO action to main
 savePicture :: String -> BS.ByteString -> IO ()
 savePicture dir picUrl = do
     let filePath = dir ++ "\\" ++ fileName where
@@ -39,7 +39,7 @@ savePictures dir lst = do
 
 getPoolD :: [Tag BS.ByteString] -> [BS.ByteString]
 getPoolD (x:xs) = case x of
-    TagOpen "post-ids" _ -> map ("https://danbooru.donmai.us/posts/" <>) $ BS.words (fromTagText $ head xs)
+    TagOpen "post-ids" _ -> map ("https://danbooru.donmai.us/posts/" <>) $ BS.words $ fromTagText $ head xs
     _                    -> getPoolD xs
 
 getFilesUrlY :: [Tag BS.ByteString] -> [BS.ByteString]
@@ -49,17 +49,13 @@ getFilesUrlY (x:xs) = case x of
     _                       -> getFilesUrlY xs
 
 getFilesUrlD :: [Tag BS.ByteString] -> [BS.ByteString]
-getFilesUrlD (x:xs) = case x of
+getFilesUrlD (x:xs@(y:_)) = case x of
     TagClose "posts"     -> []
-    TagOpen "file-url" _ -> fromTagText (head xs) : getFilesUrlD xs
+    TagOpen "file-url" _ -> fromTagText y : getFilesUrlD xs
     _                    -> getFilesUrlD xs
 
--- ? use yandere?
 getFilesUrlG :: [Tag BS.ByteString] -> [BS.ByteString]
-getFilesUrlG (x:xs) = case x of
-    TagClose "posts"        -> []
-    TagOpen "post" attrList -> snd (head $ filter (\l -> fst l == "file_url") attrList) : getFilesUrlG xs
-    _                       -> getFilesUrlG xs
+getFilesUrlG = getFilesUrlY
 
 -- ? maybe wrap in Maybe
 urlToXmlUrlY :: BS.ByteString -> BS.ByteString
@@ -76,7 +72,7 @@ urlToXmlUrlD url
     | BS.isInfixOf "pools"  url = url <> BS.pack ".xml"
     | BS.isInfixOf "posts/" url = url <> BS.pack ".xml"
     | BS.isInfixOf "posts?" url = BS.intercalate ".xml?" $ BS.split '?' url
-    | otherwise                 = error "Unsupported Danbooru link"
+    | otherwise                 = error "Unsupported Danbooru link" -- ? error ?
 
 urlToXmlUrl :: BS.ByteString -> BS.ByteString
 urlToXmlUrl url
