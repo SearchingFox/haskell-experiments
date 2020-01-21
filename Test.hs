@@ -25,6 +25,11 @@ primes n = filterPrimes [2..n] where
     filterPrimes []     = []
     filterPrimes (p:xs) = p : filterPrimes [x | x <- xs, mod x p /= 0]
 
+scanr :: (a -> b -> b) -> b -> [a] -> [b]
+scanr _ ini [] = [ini]
+scanr f ini (x:xs) =
+
+
 qsort :: (Ord a) => [a] -> [a]
 qsort []     = []
 qsort (x:xs) = qsort [n | n <- xs, n <= x] ++ [x] ++ qsort [n | n <- xs, n > x]
