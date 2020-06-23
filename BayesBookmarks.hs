@@ -1,41 +1,32 @@
 module BayesBookmarks where
 
-import Data.Char
-import Control.Monad
+import Data.List
 import Data.Map (Map)
 import qualified Data.Map as M
-import qualified Data.Vector as V
+-- import Data.Char
+-- import Control.Monad
+-- import qualified Data.Vector as V
 
--- read line in file
--- split line for words
--- head is class
--- tail is all words that should be added to class
+-- TODO: filter popular words
 
-type Wrd = String
+type Wrd = String  -- ? ByteString
 type Cls = String
-type Probability = Double
-data Tst = Tst (Map Cls Probability)  -- ? type
-data Tag = Tag (Map Wrd Tst)
+type Prb = Double
+type Tmp = Map Cls Prb
+type Tag = Map Wrd Tmp  -- ? data
 
--- filter popular words
-f :: String -> String
-f s@(c:cs)
-    | cs == [] = []
-    | c == ' ' = ' ' : f cs
-    | isLetter c = toLower c : f cs
-    | otherwise = ' ' : f cs
---filter (not . (`elem` ",.?!-:;\"\'"))
-makeTag :: [String] -> [(String, Int)]
-makeTag [] = []
-makeTag (x:xs) = (f x, 0) : makeTag xs
+countSameWords :: [String] -> [(String, Int)]
+countSameWords = map (\l -> (head l, length l)) . group . sort
 
--- ? ByteString
-train :: [String] -> [(String, [(String, Int)])]
-train [] = []
-train (x:xs) = (cl, makeTag (take num xs)) : train (drop num xs) where
-    t  = words x
-    cl = head t
-    num = read (last t) :: Int
+preTrain :: [Wrd] -> [(Cls, [(Wrd, Int)])]
+preTrain [] = []
+preTrain (x:xs) = (cls_name, countSameWords $ concatMap (words . filter (`notElem` ",.?!-:;\"\'()")) $ take lns_num xs)
+    : preTrain (drop lns_num xs)
+    where
+        header   = words x
+        cls_name = head header
+        lns_num  = read (last header) :: Int
 
 main :: IO ()
-main = readFile "C:\\Users\\Asus\\Documents\\GitHub\\haskell-experiments\\dataset1.txt" >>= \t -> print $ train $ lines t
+main = readFile "dataset1.txt" >>=
+    \t -> print $ preTrain $ lines t
