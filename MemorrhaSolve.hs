@@ -1,7 +1,13 @@
+-- {-# LANGUAGE TypeSynonymInstances #-}
+-- {-# LANGUAGE FlexibleInstances #-}
 import Data.List
 
 
 type Tile = [[Int]]
+
+-- instance Show Tile where
+--      show = init . unlines . map (pr =<<) where
+--           pr x = if x == 1 then "▓" else "░"
 
 -- TODO: read tiles from file
 a = [[0,0,0,1,0,0,0],
@@ -175,7 +181,7 @@ containsQ = or $ map (any (check goal)) $ tiles : (map allc $ pairs tiles) where
 -- ? myshow a = init $ unlines $ map concat $ map (map pr) a
 myshow :: Tile -> String
 myshow = init . unlines . map (pr =<<) where
-    pr x = if x == 1 then "▓" else "░"
+    pr x = if x == 1 then "▓" else "░" -- "■" else "□"
 
 
 main :: IO ()

@@ -99,3 +99,6 @@ digit = subtract (ord '0') . ord <$> token (satisfy isDigit)
 addop, mulop :: Parser (Int -> Int -> Int)
 addop = (symbol "+" *> pure (+)) <|> (symbol "-" *> pure (-))
 mulop = (symbol "*" *> pure (*)) <|> (symbol "/" *> pure (div))
+
+main :: IO ()
+main = print $ runParser expr "5-5"

@@ -1,8 +1,8 @@
 module BayesBookmarks where
 
 import Data.List
-import Data.Map (Map)
-import qualified Data.Map as M
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as M
 -- import Data.Char
 -- import Control.Monad
 -- import qualified Data.Vector as V

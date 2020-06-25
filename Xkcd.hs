@@ -15,8 +15,7 @@ findImageLink :: [BS.ByteString] -> BS.ByteString
 findImageLink pageHtml = last $ BS.words $ head $ filter (BS.isPrefixOf "Image URL") pageHtml
 
 savePicture :: BS.ByteString -> IO ()
-savePicture picUrl = do
-    homeDir <- getHomeDirectory
+savePicture picUrl = getHomeDirectory >>= \homeDir ->
     req GET (fst $ fromJust $ parseUrlHttps picUrl) NoReqBody bsResponse mempty >>= \pic ->
         BS.writeFile (homeDir ++ "\\Desktop\\last_xkcd.png") $ responseBody pic
             
