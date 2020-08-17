@@ -18,6 +18,8 @@ import qualified Data.ByteString.Char8 as BS
 instance MonadHttp IO where
     handleHttpException = throwIO
 
+type Danbooru = [Tag BS.ByteString]
+
 -- TODO?: Move IO action to main
 savePicture :: String -> BS.ByteString -> IO ()
 savePicture dir picUrl = do
@@ -48,8 +50,14 @@ getFilesUrlY (x:xs) = case x of
     TagOpen "post" attrList -> snd (head $ filter (\l -> fst l == "file_url") attrList) : getFilesUrlY xs
     _                       -> getFilesUrlY xs
 
+-- getFilesUrlD :: [Tag BS.ByteString] -> [BS.ByteString]
+-- getFilesUrlD (x:xs@(y:_)) = case x of
+--     TagClose "posts"     -> []
+--     TagOpen "file-url" _ -> fromTagText y : getFilesUrlD xs
+--     _                    -> getFilesUrlD xs
+
 getFilesUrlD :: [Tag BS.ByteString] -> [BS.ByteString]
-getFilesUrlD (x:xs@(y:_)) = case x of
+getFilesUrlD (x:y:xs) = case x of
     TagClose "posts"     -> []
     TagOpen "file-url" _ -> fromTagText y : getFilesUrlD xs
     _                    -> getFilesUrlD xs
@@ -94,13 +102,14 @@ downloadLink link = do
     --     "time" -> do
     --         t <- getPOSIXTime
     --         let dirName = show $ round t
-    let dirName = filter (flip notElem ("/\\:*?\"<>|" :: String)) $ BS.unpack $ last $ BS.split '/' (if BS.last link == '/' then BS.init link else link)
+    let dirName = filter (flip notElem ("/\\:*?\"<>|" :: String)) $ BS.unpack $ last $
+            BS.split '/' (if BS.last link == '/' then BS.init link else link)
     case parseUrlHttps $ urlToXmlUrl link of
         Just (url, options) -> do
             putStrLn $ "Downloading " ++ BS.unpack link
             req GET url NoReqBody bsResponse options >>= \rsp ->
                 savePictures dirName $ chooseParser link $ parseTags $ responseBody rsp
-        Nothing             -> putStrLn "Bad url"
+        Nothing -> putStrLn "Bad url"
 
 downloadFromFile :: String -> IO ()
 downloadFromFile file = readFile file >>= \s -> mapM_ (downloadLink . BS.pack) $ lines s

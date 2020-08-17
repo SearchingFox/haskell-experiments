@@ -15,17 +15,15 @@ type Prb = Double
 type Tmp = Map Cls Prb
 type Tag = Map Wrd Tmp  -- ? data
 
-countSameWords :: [String] -> [(String, Int)]
-countSameWords = map (\l -> (head l, length l)) . group . sort
-
 preTrain :: [Wrd] -> [(Cls, [(Wrd, Int)])]
 preTrain [] = []
-preTrain (x:xs) = (cls_name, countSameWords $ concatMap (words . filter (`notElem` ",.?!-:;\"\'()")) $ take lns_num xs)
-    : preTrain (drop lns_num xs)
+preTrain (x:xs) = (clsName, countSameWords $ concatMap (words . filter (`notElem` ",.?!-:;\"\'()")) $ take linesCnt xs)
+    : preTrain (drop linesCnt xs)
     where
+        countSameWords = map (\l -> (head l, length l)) . group . sort
         header   = words x
-        cls_name = head header
-        lns_num  = read (last header) :: Int
+        clsName  = head header
+        linesCnt = read (last header) :: Int
 
 main :: IO ()
 main = readFile "dataset1.txt" >>=
