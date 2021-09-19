@@ -23,12 +23,12 @@ type Danbooru = [Tag BS.ByteString]
 -- TODO?: Move IO action to main
 savePicture :: String -> BS.ByteString -> IO ()
 savePicture dir picUrl = do
-    let filePath = dir ++ "\\" ++ fileName where
-        fileName = filter (`notElem` ("/\\:*?\"<>|" :: String)) $ unescapeString $ BS.unpack $ last $ BS.split '/' picUrl where
-            unescapeString (x:s@(y:z:xs))
-                | x == '%'  = chr (read ("0x" ++ [y, z])) : unescapeString xs
-                | otherwise = x : unescapeString s
-            unescapeString s = s
+    let filePath = dir ++ "\\" ++ fileName
+        fileName = filter (`notElem` ("/\\:*?\"<>|" :: String)) $ unescapeString $ BS.unpack $ last $ BS.split '/' picUrl
+        unescapeString (x:s@(y:z:xs))
+            | x == '%'  = chr (read ("0x" ++ [y, z])) : unescapeString xs
+            | otherwise = x : unescapeString s
+        unescapeString s = s
     
     req GET (fst $ fromJust $ parseUrlHttps picUrl) NoReqBody bsResponse mempty >>= \pic ->
         BS.writeFile filePath $ responseBody pic
@@ -102,7 +102,7 @@ downloadLink link = do
     --     "time" -> do
     --         t <- getPOSIXTime
     --         let dirName = show $ round t
-    let dirName = filter (flip notElem ("/\\:*?\"<>|" :: String)) $ BS.unpack $ last $
+    let dirName = filter (`notElem` ("/\\:*?\"<>|" :: String)) $ BS.unpack $ last $
             BS.split '/' (if BS.last link == '/' then BS.init link else link)
     case parseUrlHttps $ urlToXmlUrl link of
         Just (url, options) -> do
